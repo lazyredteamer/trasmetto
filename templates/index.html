@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Trasmetto</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Trasmetto</div>
+        <div>Version 0.9</div>
+    </div>
+
+    <div class="container">
+        <h2>UPLOAD</h2>
+        {{if .CanUpload}}
+        <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" id="fileInput">
+            <input type="hidden" name="path" value="{{.CurrentPath}}">
+            <button type="submit">Upload</button>
+            <p class="status-text">STATUS: READY</p>
+        </form>
+        {{else if .Error}}
+        <p class="status-text">STATUS: {{.Error}}</p>
+        {{else}}
+        <p class="status-text">STATUS: Upload disabled</p>
+        {{end}}
+    </div>
+
+    <div class="container">
+        <h2>FILES</h2>
+        <ul id="fileList">
+            {{range .Files}}
+            <li><a href="{{.Link}}">{{.Name}}</a></li>
+            {{end}}
+        </ul>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const statusText = document.querySelector('.status-text');
+            
+            if (fileInput.files.length === 0) {
+                statusText.textContent = 'STATUS: No file selected';
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const xhr = new XMLHttpRequest();
+            
+            statusText.textContent = 'STATUS: Uploading (0%)';
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    statusText.textContent = 'STATUS: Uploading (' + percentComplete + '%)';
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200 || xhr.status === 303) {
+                    statusText.textContent = 'STATUS: Upload complete!';
+                    setTimeout(() => {
+                        statusText.textContent = 'STATUS: READY';
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    statusText.textContent = 'STATUS: Upload failed: ' + xhr.statusText;
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                statusText.textContent = 'STATUS: Upload failed';
+            });
+            
+            xhr.open('POST', this.action, true);
+            xhr.send(formData);
+        });
+    </script>
+</body>
+</html>
